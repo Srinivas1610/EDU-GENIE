@@ -5,6 +5,8 @@ import logging
 from typing import Dict, List, Any, Optional
 from google import genai
 from google.genai import errors
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+import torch
 
 import config
 
@@ -15,6 +17,10 @@ logger = logging.getLogger(__name__)
 # Global cache for client
 _client = None
 _cached_key = None
+
+# Global cache for local models to enable lazy-loading
+_local_model = None
+_local_tokenizer = None
 
 def is_gemini_active() -> bool:
     """Checks if GEMINI_API_KEY is currently configured in the environment."""
@@ -34,11 +40,12 @@ def get_client() -> genai.Client:
         
     return _client
 
-def generate_gemini_content(prompt: str) -> str:
+def generate_gemini_content(prompt: str, model_name: Optional[str] = None) -> str:
     """Helper to generate content using the Gemini client with error handling."""
     try:
         client = get_client()
-        model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
+        if not model_name:
+            model_name = os.getenv("GEMINI_MODEL_NAME", "gemini-2.5-flash")
         if not model_name:
             model_name = "gemini-2.5-flash"
             
@@ -52,6 +59,43 @@ def generate_gemini_content(prompt: str) -> str:
         return response.text
     except Exception as e:
         logger.error(f"Gemini generation error: {e}")
+        raise e
+
+def load_local_model():
+    """Lazy-loads the local tokenizer and model on CPU."""
+    global _local_model, _local_tokenizer
+    if _local_model is None or _local_tokenizer is None:
+        model_name = "MBZUAI/LaMini-Flan-T5-77M"
+        logger.info(f"Loading local model '{model_name}' and tokenizer...")
+        try:
+            _local_tokenizer = AutoTokenizer.from_pretrained(model_name)
+            _local_model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+            logger.info("Local model and tokenizer loaded successfully.")
+        except Exception as e:
+            logger.error(f"Failed to load local model/tokenizer: {e}")
+            raise e
+
+def generate_local_content(prompt: str, max_length: int = 256) -> str:
+    """Generates content using the local LaMini-Flan-T5 model."""
+    try:
+        load_local_model()
+        logger.info("Generating content using local model...")
+        
+        inputs = _local_tokenizer(prompt, return_tensors="pt")
+        
+        with torch.no_grad():
+            outputs = _local_model.generate(
+                **inputs,
+                max_length=max_length,
+                do_sample=True,
+                temperature=0.7,
+                num_return_sequences=1
+            )
+            
+        generated_text = _local_tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return generated_text
+    except Exception as e:
+        logger.error(f"Local model inference error: {e}")
         raise e
 
 def clean_json_string(text: str) -> str:

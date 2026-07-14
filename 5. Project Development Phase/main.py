@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="EduGenie",
-    description="Cloud AI-powered educational assistant optimized for Vercel",
-    version="2.0.0"
+    description="AI-powered educational assistant with local offline fallback",
+    version="2.1.0"
 )
 
 # Mount static and templates
@@ -80,44 +80,50 @@ async def read_dashboard(request: Request):
         name="index.html",
         context={
             "gemini_active": models.is_gemini_active(),
-            "local_model_name": config.GEMINI_MODEL_NAME
+            "local_model_name": "MBZUAI/LaMini-Flan-T5-77M"
         }
     )
 
 
 @app.get("/api/status")
 async def get_status():
-    """Returns the status of the cloud AI backend."""
+    """Returns the status of both AI backends."""
     check_and_reload_api_key()
-    active = models.is_gemini_active()
     return {
-        "gemini_active": active,
-        "local_model_loaded": active,
-        "local_model_name": config.GEMINI_MODEL_NAME
+        "gemini_active": models.is_gemini_active(),
+        "local_model_loaded": models._local_model is not None,
+        "local_model_name": "MBZUAI/LaMini-Flan-T5-77M"
     }
 
 
 @app.post("/api/qa")
 async def ask_question(data: QARequest):
-    """Answers educational questions using the cloud Gemini API."""
+    """Answers educational questions using either Local T5 or Gemini API."""
     check_and_reload_api_key()
     
-    if not models.is_gemini_active():
-        raise HTTPException(
-            status_code=400, 
-            detail="Gemini API Key is not set. Please add GEMINI_API_KEY to your .env file."
-        )
-        
-    prompt = prompts.QA_PROMPT.format(question=data.question)
-    try:
-        answer = models.generate_gemini_content(prompt)
-        return {
-            "answer": answer,
-            "model_used": f"Google Gemini ({config.GEMINI_MODEL_NAME})",
-            "success": True
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Gemini API error: {str(e)}")
+    # Decide model based on checkbox ("use_local" represents High Precision checkbox checked) or missing key
+    if data.use_local or not models.is_gemini_active():
+        prompt = f"Answer this question: {data.question}"
+        try:
+            answer = models.generate_local_content(prompt, max_length=200)
+            return {
+                "answer": answer,
+                "model_used": "Local Model (MBZUAI/LaMini-Flan-T5-77M)",
+                "success": True
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Local model error: {str(e)}")
+    else:
+        prompt = prompts.QA_PROMPT.format(question=data.question)
+        try:
+            answer = models.generate_gemini_content(prompt, model_name="gemini-2.5-flash")
+            return {
+                "answer": answer,
+                "model_used": "Google Gemini (gemini-2.5-flash)",
+                "success": True
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Gemini API error: {str(e)}")
 
 
 @app.post("/api/explain")
@@ -177,25 +183,31 @@ async def generate_quiz(data: QuizRequest):
 
 @app.post("/api/summarize")
 async def summarize_text(data: SummarizeRequest):
-    """Summarizes text using the cloud Gemini API."""
+    """Summarizes text using local T5 or Gemini API."""
     check_and_reload_api_key()
     
     if not models.is_gemini_active():
-        raise HTTPException(
-            status_code=400, 
-            detail="Gemini API Key is not set. Summarization requires a Gemini key."
-        )
-        
-    prompt = prompts.SUMMARIZE_PROMPT.format(text=data.text, max_length=data.max_length)
-    try:
-        summary = models.generate_gemini_content(prompt)
-        return {
-            "summary": summary,
-            "model_used": f"Google Gemini ({config.GEMINI_MODEL_NAME})",
-            "success": True
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Summarizer failed: {str(e)}")
+        prompt = f"Summarize the following educational text: {data.text}"
+        try:
+            summary = models.generate_local_content(prompt, max_length=data.max_length)
+            return {
+                "summary": summary,
+                "model_used": "Local Model (MBZUAI/LaMini-Flan-T5-77M)",
+                "success": True
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Local summarizer failed: {str(e)}")
+    else:
+        prompt = prompts.SUMMARIZE_PROMPT.format(text=data.text, max_length=data.max_length)
+        try:
+            summary = models.generate_gemini_content(prompt)
+            return {
+                "summary": summary,
+                "model_used": f"Google Gemini ({config.GEMINI_MODEL_NAME})",
+                "success": True
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Cloud summarizer failed: {str(e)}")
 
 
 @app.post("/api/recommend")

@@ -63,9 +63,9 @@
                         <span class="status-value" id="status-gemini-text">{% if gemini_active %}Active{% else %}Inactive{% endif %}</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-dot {% if gemini_active %}active{% else %}inactive{% endif %}" id="status-local-dot"></span>
-                        <span class="status-label">Model Engine: </span>
-                        <span class="status-value" id="status-local-text">{% if gemini_active %}{{ local_model_name }}{% else %}Inactive{% endif %}</span>
+                        <span class="status-dot inactive" id="status-local-dot"></span>
+                        <span class="status-label">Local T5: </span>
+                        <span class="status-value" id="status-local-text">Idle</span>
                     </div>
                 </div>
             </div>
@@ -94,7 +94,7 @@
                 <div class="alert-content">
                     <h4>Gemini API Key Missing</h4>
                     <p>To enable premium AI capabilities (Concept Explainer, Quiz Generator, and Learning Paths), add your key to a `.env` file in the project folder: <code>GEMINI_API_KEY=your_key_here</code></p>
-                    <p><em>EduGenie will automatically load the key once the file is saved (no restart required).</em></p>
+                    <p><em>EduGenie will automatically load the key once the file is saved (no restart required). Local Q&A and Summarization remain available offline.</em></p>
                 </div>
             </div>
             {% endif %}
@@ -115,7 +115,7 @@
                             <label class="toggle-switch">
                                 <input type="checkbox" id="qa-local">
                                 <span class="slider"></span>
-                                <span class="toggle-label">Enable High Precision Mode</span>
+                                <span class="toggle-label">Enable Offline T5 (High Precision Mode ON)</span>
                             </label>
                             <button type="submit" class="btn-primary" id="btn-submit-qa">Ask EduGenie</button>
                         </div>
@@ -269,7 +269,7 @@
                 <div class="card card-form">
                     <div class="card-header">
                         <h2>📄 Educational Text Summarizer</h2>
-                        <p>Condense lengthy study materials or textbook chapters into quick summary bullet points using Gemini 2.5 Flash.</p>
+                        <p>Condense lengthy study materials or textbook chapters into quick summary bullet points locally using LaMini-Flan-T5 (or Gemini Cloud if active).</p>
                     </div>
                     <form id="form-summarize" class="edu-form">
                         <div class="form-group">
@@ -296,7 +296,7 @@
                     <div class="card-header result-header">
                         <h3>Summary Output</h3>
                         <div class="result-actions">
-                            <span class="badge" id="local-model-badge">Google Gemini 2.5</span>
+                            <span class="badge" id="local-model-badge">Local Model (LaMini-Flan-T5)</span>
                             <button class="btn-icon-only copy-btn" data-target="result-summarize-text" title="Copy response">📋</button>
                         </div>
                     </div>

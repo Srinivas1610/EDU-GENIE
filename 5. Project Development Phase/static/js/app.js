@@ -320,15 +320,15 @@ document.addEventListener("DOMContentLoaded", () => {
                     geminiText.innerText = "Inactive";
                 }
 
-                // Update Model Engine Label
+                // Update Local T5 Dot and Label
                 const localDot = document.getElementById("status-local-dot");
                 const localText = document.getElementById("status-local-text");
-                if (status.gemini_active) {
+                if (status.local_model_loaded) {
                     localDot.className = "status-dot active";
-                    localText.innerText = status.local_model_name;
+                    localText.innerText = "Loaded (Ready)";
                 } else {
                     localDot.className = "status-dot inactive";
-                    localText.innerText = "Inactive";
+                    localText.innerText = "Idle (Unloaded)";
                 }
             }
         } catch (e) {
@@ -354,7 +354,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const question = document.getElementById("qa-question").value;
         const useLocal = document.getElementById("qa-local").checked;
 
-        showLoading("Querying Gemini API...");
+        const isLocalActive = useLocal || !document.getElementById("status-gemini-dot").classList.contains("active");
+        
+        const localDot = document.getElementById("status-local-dot");
+        const localText = document.getElementById("status-local-text");
+        if (isLocalActive && !localDot.classList.contains("active")) {
+            localDot.className = "status-dot loading";
+            localText.innerText = "Downloading...";
+        }
+
+        showLoading(isLocalActive ? "Inference using local model..." : "Querying Gemini API...");
 
         try {
             const response = await fetch("/api/qa", {
@@ -612,7 +621,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const text = document.getElementById("summarize-text").value;
         const maxLen = parseInt(document.getElementById("summarize-len").value);
 
-        showLoading("Summarizing text using Gemini API...");
+        const isLocalActive = !document.getElementById("status-gemini-dot").classList.contains("active");
+        
+        const localDot = document.getElementById("status-local-dot");
+        const localText = document.getElementById("status-local-text");
+        if (isLocalActive && !localDot.classList.contains("active")) {
+            localDot.className = "status-dot loading";
+            localText.innerText = "Downloading...";
+        }
+
+        showLoading(isLocalActive ? "Summarizing text locally using T5..." : "Summarizing text using Gemini API...");
 
         try {
             const response = await fetch("/api/summarize", {
