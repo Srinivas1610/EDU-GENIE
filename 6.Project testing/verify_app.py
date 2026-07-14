@@ -2,7 +2,7 @@ import sys
 import os
 
 # Add project root to python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "..", "Desktop", "PROJECTS", "4.uma")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "5. Project Development Phase")))
 
 from fastapi.testclient import TestClient
 import main

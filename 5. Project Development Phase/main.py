@@ -21,13 +21,15 @@ app = FastAPI(
     version="2.1.0"
 )
 
-# Mount static and templates
-os.makedirs("static/css", exist_ok=True)
-os.makedirs("static/js", exist_ok=True)
-os.makedirs("templates", exist_ok=True)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+# Mount static and templates
+os.makedirs(os.path.join(BASE_DIR, "static", "css"), exist_ok=True)
+os.makedirs(os.path.join(BASE_DIR, "static", "js"), exist_ok=True)
+os.makedirs(os.path.join(BASE_DIR, "templates"), exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 
 # Request Schemas
