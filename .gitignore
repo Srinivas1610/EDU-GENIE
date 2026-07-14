@@ -1,27 +1,42 @@
-# Python cache
+# Python bytecode and cache
 __pycache__/
 *.py[cod]
 *$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
 
 # Virtual environments
 .venv/
 venv/
 env/
 
-# Environment variables
+# Environment variables and secrets
 .env
 .env.*
 **/.env
 **/.env.*
 
-# Tooling and IDE
+# Local tooling and editor settings
 .vscode/
 .idea/
 
-# Build artifacts
+# Test, coverage, and build artifacts
+.coverage
+.coverage.*
+htmlcov/
 build/
 dist/
 *.egg-info/
+*.log
+*.tmp
+*.bak
+*.orig
+
+# Database and data dumps
+*.sqlite3
+*.db
 
 # OS files
 .DS_Store
